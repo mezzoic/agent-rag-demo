@@ -195,9 +195,9 @@ async def main():
         try:
             queries = [
                 "Tell me about Lady Ada Lovelace. What's her background?",
-                "What's the weather like in Paris tonight? Will it be suitable for our fireworks display?",
-                "One of our guests is from Google. What can you tell me about their most popular model?",
-                "I need to speak with Dr. Nikola Tesla about recent advancements in wireless energy. Can you help me prepare for this conversation?"
+                "What's the weather like in Paris tonight? Will it be suitable for our fireworks display?",  # noqa: E501
+                "One of our guests is from Google. What can you tell me about their most popular model?",  # noqa: E501
+                "I need to speak with Dr. Nikola Tesla about recent advancements in wireless energy. Can you help me prepare for this conversation?"  # noqa: E501
             ]
             for query in queries:
                 print(f"\nQuery: {query}")
