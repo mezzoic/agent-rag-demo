@@ -21,8 +21,7 @@ classifiers = [
 
 # Core dependencies for production RAG system
 dependencies = [
-    "llama-index>=0.12.46",
-    "datasets>=3.6.0", 
+    "datasets>=3.6.0",
     "llama-index-retrievers-bm25>=0.5.2",
     "llama-index-llms-huggingface-api>=0.5.0",
     "python-dotenv>=1.0.0",
@@ -30,12 +29,17 @@ dependencies = [
     "llama-index-llms-azure-openai>=0.3.0",
     "llama-index-llms-ollama>=0.6.0",
     "llama-index-llms-openai>=0.4.7",
+    "llama-index-tools-duckduckgo>=0.3.0",
+    "llama-index-core>=0.12.46",
+    "llama-index-tools-google>=0.5.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",  # Better mocking utilities
+    "pytest-cov>=4.0.0",   # Coverage reporting
     "black>=24.0.0",
     "isort>=5.13.0",
     "mypy>=1.8.0",
@@ -87,6 +91,10 @@ select = [
 
 [dependency-groups]
 dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
     "ruff>=0.12.2",
 ]
 
@@ -94,3 +102,25 @@ dev = [
 rag-demo = "app.app:main"
 rag-demo-no-llm = "app.app_no_llm:main"
 test-azure = "test_azure:test_azure_ai"
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "slow: Slow tests (require external APIs)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

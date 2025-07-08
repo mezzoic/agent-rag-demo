@@ -61,6 +61,7 @@ coverage.xml
 
 # dotenv environment variables
 .env
+.env.*
 
 # Local config files
 *.local

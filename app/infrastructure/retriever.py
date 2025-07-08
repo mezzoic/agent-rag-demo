@@ -171,6 +171,7 @@ class MockVectorRetriever(BaseRetriever):
     def __init__(self, similarity_top_k: int = 3):
         super().__init__()
         self.similarity_top_k = similarity_top_k
+        self.is_indexed = False
 
     def _create_index(self) -> int:
         """Mock vector index creation."""

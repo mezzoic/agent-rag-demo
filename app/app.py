@@ -3,8 +3,14 @@ import os
 
 from dotenv import load_dotenv
 from infrastructure.retriever import BaseRetriever, GuestRetriever, RetrieverInterface
-from infrastructure.tools import QueryTool
+from infrastructure.tools import (
+    HuggingFaceModelSearchTool,
+    QueryTool,
+    WeatherInfoTool,
+    WebSearchTool,
+)
 from llama_index.core.agent.workflow import AgentWorkflow
+from llama_index.core.workflow import Context  # Add this import
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +52,27 @@ async def main():
     # Type annotation uses interface, but instantiation uses concrete class
     retriever: RetrieverInterface = GuestRetriever()
     guest_info_tool = QueryTool(retriever)
+    weather_info_tool = WeatherInfoTool()
+    hub_stats_tool = HuggingFaceModelSearchTool()
+    # Initialize the web search tool
+    # This requires GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID to be set in .env file
+
+    google_api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+    google_search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+    if not google_api_key or not google_search_engine_id:
+        print("Web search tool requires GOOGLE_API_KEY and " \
+        "GOOGLE_SEARCH_ENGINE_ID to be set in .env file"\
+        f" {google_api_key},{ google_search_engine_id}")
+        return
+    try:
+        search_tool = WebSearchTool(
+            google_api_key=google_api_key,
+            google_search_engine_id=google_search_engine_id
+        ) # web search tool
+        print("Web search tool initialized successfully")
+    except Exception as e:
+        print(f"Failed to initialize web search tool: {e}")
+        return
 
     # Set up LLM with fallbacks:
     # Azure AI (cloud) -> Ollama (local) -> Hugging Face (cloud) -> OpenAI (cloud)
@@ -67,7 +94,7 @@ async def main():
                     api_version="2024-12-01-preview"
                 )
                 demoWorkflow = AgentWorkflow.from_tools_or_functions(
-                    [guest_info_tool],
+                    [guest_info_tool, search_tool, weather_info_tool, hub_stats_tool],
                     llm=llm
                 )
                 print(f"LLM workflow enabled with Azure AI ({azure_model})")
@@ -97,7 +124,7 @@ async def main():
             if llm:
                 # Create workflow
                 demoWorkflow = AgentWorkflow.from_tools_or_functions(
-                    [guest_info_tool],
+                    [guest_info_tool, search_tool, weather_info_tool, hub_stats_tool],
                     llm=llm
                 )
                 print("LLM workflow enabled with Ollama")
@@ -115,7 +142,7 @@ async def main():
                     token=hf_token
                 )
                 demoWorkflow = AgentWorkflow.from_tools_or_functions(
-                    [guest_info_tool],
+                    [guest_info_tool, search_tool, weather_info_tool, hub_stats_tool],
                     llm=llm
                 )
                 print("LLM workflow enabled with Hugging Face")
@@ -135,7 +162,7 @@ async def main():
             try:
                 llm = OpenAI(model="gpt-3.5-turbo", api_key=openai_key)  # type: ignore
                 demoWorkflow = AgentWorkflow.from_tools_or_functions(
-                    [guest_info_tool],
+                    [guest_info_tool, search_tool, weather_info_tool, hub_stats_tool],
                     llm=llm
                 )
                 print("LLM workflow enabled with OpenAI")
@@ -161,19 +188,28 @@ async def main():
         print("="*60)
 
     # Test different approaches
-    query = "mathematician"
-    print(f"\nQuery: {query}")
 
     if demoWorkflow:
         print("\n=== Using Workflow (LLM + Tool) ===")
+        ctx = Context(demoWorkflow)
         try:
-            workflow_response = await demoWorkflow.run(query)
-            print("Workflow Response:")
-            print(workflow_response)
+            queries = [
+                "Tell me about Lady Ada Lovelace. What's her background?",
+                "What's the weather like in Paris tonight? Will it be suitable for our fireworks display?",
+                "One of our guests is from Google. What can you tell me about their most popular model?",
+                "I need to speak with Dr. Nikola Tesla about recent advancements in wireless energy. Can you help me prepare for this conversation?"
+            ]
+            for query in queries:
+                print(f"\nQuery: {query}")
+
+                workflow_response = await demoWorkflow.run(query, ctx=ctx)
+                print("Workflow Response:")
+                print(workflow_response)
+
         except Exception as e:
             print(f"Workflow error: {e}")
             print("Continuing with other tests...")
-
+    query = "mathematician"
     print("\n=== Using Tool Directly ===")
     tool_result = guest_info_tool(query)
     print("Tool Result Content:")
@@ -190,6 +226,9 @@ async def main():
     print("\nFormatted results:")
     formatted_detailed = BaseRetriever.format_NodeWithScores(raw_results, "detailed")
     print(formatted_detailed[:500] + "..." if len(formatted_detailed) > 500 else formatted_detailed)
+
+
+
 
 if __name__ == "__main__":
     asyncio.run(main())
